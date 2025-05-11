@@ -3,8 +3,6 @@ import { View, Text, StyleSheet, ImageBackground, Image, TouchableOpacity } from
 import { Ionicons } from '@expo/vector-icons';
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { Alert } from "react-native";
 import QRCode from 'react-native-qrcode-svg';
 import pako from 'pako';
@@ -43,7 +41,7 @@ export default function HomeScreen() {
     const sendEmail = async () => {
       const email = await AsyncStorage.getItem('userEmail');
       console.log("Email from AsyncStorage:", email);
-      const response = await fetch("http://10.7.48.241:3000/encrypt", {
+      const response = await fetch("http://192.168.1.3:3000/encrypt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,6 +52,7 @@ export default function HomeScreen() {
       if (response.ok) {
         const { encapsulatedKey,encryptedData,username } = await response.json();
         setUsername(username); // Store the username for later use
+        console.log("Username:", username);
         key = encapsulatedKey; // Store the encapsulated key for later use
         Data = encryptedData; // Store the encrypted data for later use
         console.log("Encrypted data:", encryptedData, "Encapsulated key:", encapsulatedKey);  

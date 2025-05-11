@@ -22,7 +22,7 @@ export const userLogin = action({
     }
 
     // Compare hashed password
-    const passwordMatches = await bcrypt.compare(password, user.Password);
+    const passwordMatches = await bcrypt.compare(password, user.password);
 
     if (!passwordMatches) {
       console.log("Password Incorrect");

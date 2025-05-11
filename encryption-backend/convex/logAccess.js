@@ -4,21 +4,25 @@ import { v } from 'convex/values';
 
 export const logAccess = mutation({
   args: {
-    userId: v.id("Users"),
-    name: v.string(),
-    email: v.string(),
-    location: v.string(),
-    timestamp: v.string(),
-    status: v.string()
+    userId: v.string(),
+    roomName: v.string(),
+    accessStatus: v.string(),
+    timestamp: v.string(), 
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("AccessLogs", {
+    console.log("Received args:", args);
+
+    // Validate userId
+    if (!args.userId) {
+      throw new Error("userId is required.");
+    }
+
+    // Insert the access log
+    await ctx.db.insert("access_logs", {
       userId: args.userId,
-      name: args.name,
-      email: args.email,
-      location: args.location,
+      roomName: args.roomName,
       timestamp: args.timestamp,
-      status: args.status,
+      accessStatus: args.accessStatus,
     });
   }
 });

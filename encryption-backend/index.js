@@ -78,8 +78,7 @@ function encryptAES256(plainObject, key) {
       const { key, Data, location } = req.body;
       const encapsulatedKey = key;
       const encryptedData = Data;
-
-      console.log(req.body);
+      console.log("Location: ",location, typeof(location));
   
       if (!encapsulatedKey || !encryptedData) {
         return res
@@ -92,7 +91,6 @@ function encryptAES256(plainObject, key) {
         Buffer.from(encapsulatedKey, 'base64'),
         privateKey
       );
-      console.log("Decrypted symmetric key:", symmetricKey.toString("hex"));
   
       // 2. Decrypt AES data
       const decryptedData = decryptAES256(encryptedData, symmetricKey);
@@ -110,60 +108,67 @@ function encryptAES256(plainObject, key) {
 
     if (diffMs > 5 * 60 * 1000) {
       return res.status(403).json({ status: "QR code expired. Entry Denied." });
-    }
-
+    }else{
         // 4. Query Convex using ID
-        const response = await fetch(`${CONVEX_URL}/api/query`, {
+          const response = await fetch(`${CONVEX_URL}/api/query`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              path: "queryData:getUserById", // You'll add this
+              args: { id },
+              format: "json",
+            }),
+          });
+
+          const userData = await response.json();
+          console.log("Fetched user from Convex:", userData);
+          if (!userData || !userData.value || !userData.value._id) {
+            return res.status(404).json({ error: "User not found in database" });
+          }
+
+          const allowedLocations = userData.value.access || [];
+          console.log("Allowed Locations: ", allowedLocations);
+          console.log("Location: ", location);
+
+          const status = allowedLocations.includes(location)
+          ? "allowed"
+          : "denied";
+          console.log("Access Status: ", status);
+          console.log("User ID (cmsId):", userData.value.cmsId);
+        
+        // Log access attempt to Convex
+        const accessResponse = await fetch(`${CONVEX_URL}/api/mutation`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            path: "queryData:getUserById", // You'll add this
-            args: { id },
+            path: "logAccess:logAccess",
+            args: {
+              userId: userData.value.cmsId,
+              roomName:location,
+              accessStatus:status,
+              timestamp: new Date().toISOString(),
+            },
             format: "json",
           }),
         });
 
-        const userData = await response.json();
-        console.log("Fetched user from Convex:", userData);
-        if (!userData || !userData.value || !userData.value._id) {
-          return res.status(404).json({ error: "User not found in database" });
+        const accessResponseJson = await accessResponse.json();
+        console.log("Access log response:", accessResponseJson);
+        
+        // Now send final response
+        if (status === "allowed") {
+          return res.json({ status:"Access Granted" });
+        } else {
+          return res.status(403).json({ status:"Access Denied" });
         }
+        
+    }
 
-        const allowedLocations = userData.value.Access || [];
-
-        const status = allowedLocations.includes(location)
-        ? "Access Granted"
-        : "Access Denied";
-      
-      // Log access attempt to Convex
-      await fetch(`${CONVEX_URL}/api/mutation`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          path: "logAccess:logAccess",
-          args: {
-            userId: userData.value._id,
-            name: userData.value.Name,
-            email: userData.value.Email,
-            timestamp: new Date().toISOString(),
-            location,
-            status,
-          },
-          format: "json",
-        }),
-      });
-      
-      // Now send final response
-      if (status === "Entry Granted") {
-        return res.json({ status });
-      } else {
-        return res.status(403).json({ status });
-      }
-      
+        
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Decryption or validation failed" });
@@ -219,7 +224,7 @@ app.post("/encrypt", async (req, res) => {
     // Encrypt the plainText using AES and ss1
     const encryptedData = encryptAES256(plainText, ss1);
 
-    res.json({ encapsulatedKey:Buffer.from(c).toString('base64'), encryptedData,username: userData.value.Name });
+    res.json({ encapsulatedKey:Buffer.from(c).toString('base64'), encryptedData,username: userData.value.fullName });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Encryption failed" });

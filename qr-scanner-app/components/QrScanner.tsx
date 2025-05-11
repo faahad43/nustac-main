@@ -53,7 +53,7 @@ export default function QrScanner({route}: QrScannerProps) {
       }
       console.log("GOT IT");
 
-      const response = await fetch('http://10.7.48.241:3000/decrypt', {
+      const response = await fetch('http://192.168.1.3:3000/decrypt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, Data, location: `${selectedDept} ${selectedRoom}` }),
@@ -66,7 +66,7 @@ export default function QrScanner({route}: QrScannerProps) {
 
       console.log('Chosen Location:', selectedDept, selectedRoom);
 
-      if (result.status !== "Entry Granted") {
+      if (result.status !== "Access Granted") {
         Alert.alert("Access Denied", result.status || "User does not have access to this room");
       } else {
         Alert.alert("Success", "Entry Granted");

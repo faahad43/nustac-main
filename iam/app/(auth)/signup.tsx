@@ -7,9 +7,12 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import {api} from "../../api";
 import { useAction } from "convex/react";
 import { useLocalSearchParams } from 'expo-router';
+import Constants from 'expo-constants';
 
 
 export default function SignupScreen() {
+  const { EXPO_SERVICE_ID, EXPO_TEMPLATE_ID, EXPO_PUBLIC_KEY } = Constants.expoConfig?.extra || {};
+ 
 
   type ErrorsType = {
     email?: string;
@@ -85,43 +88,53 @@ export default function SignupScreen() {
       return;
     }else{
         // Check if email exists in registeredEmails on database
-        const result = await checkEmail({ email })
+        let result;
+        try {
+          result = await checkEmail({ email });
+        } catch (error) {
+          // Retry once on connection lost error
+          console.warn("checkEmail failed, retrying...", error);
+          await new Promise(res => setTimeout(res, 500)); // wait briefly
+          result = await checkEmail({ email }); // retry
+        }
+    
+        const fullName = result.name;
      if (result.success) {
         // Generate 6-digit OTP
         const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
 
         // have to uncomment this code for sending email
-        //send email
-        // try {
-        //     res = await send(
-        //       process.env.EXPO_SERVICE_ID, 
-        //       process.env.EXPO_TEMPLATE_ID,
-        //       {
-        //         fullName,
-        //         email,
-        //         generatedOTP,
-        //         formattedDate
-        //       },
-        //       {
-        //         publicKey: process.env.EXPO_PUBLIC_KEY,
-        //       }
-        //     );
-        //     console.log('SUCCESS!',res);
-        //   } catch (err) {
-        //     if (err instanceof EmailJSResponseStatus) {
-        //       console.log('EmailJS Request Failed...', err);
-        //     }
-        //     console.log('ERROR', err);
-        //     Alert.alert("Error in Sending the OTP");
-        //   }
+        // send email
+        try {
+            res = await send(
+              EXPO_SERVICE_ID, 
+              EXPO_TEMPLATE_ID,
+              {
+                fullName,
+                email,
+                generatedOTP,
+                formattedDate
+              },
+              {
+                publicKey: EXPO_PUBLIC_KEY,
+              }
+            );
+            console.log('SUCCESS!',res);
+          } catch (err) {
+            if (err instanceof EmailJSResponseStatus) {
+              console.log('EmailJS Request Failed...', err);
+            }
+            console.log('ERROR', err);
+            Alert.alert("Error in Sending the OTP");
+          }
 
         // If email exists, navigate to OTP screen
-        // if (res.status === 200 ){ uncomment this line as well
+        if (res.status === 200 ){ 
           router.push({
             pathname: '/(auth)/otp',
             params: {generatedOTP, email, password}
           });
-        // }                            uncomment this line as well
+        }                            
         
       } else {
         // If email doesn't exist, show an alert

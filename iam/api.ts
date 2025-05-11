@@ -5,15 +5,6 @@ export const api: PublicApiType = anyApi as unknown as PublicApiType;
 export const internal: InternalApiType = anyApi as unknown as InternalApiType;
 
 export type PublicApiType = {
-  queryData: {
-    getUserById: FunctionReference<"query", "public", { id: Id<"Users"> }, any>;
-    getUserByEmail: FunctionReference<
-      "query",
-      "public",
-      { email: string },
-      any
-    >;
-  };
   userLogin: {
     userLogin: FunctionReference<
       "action",
@@ -31,11 +22,31 @@ export type PublicApiType = {
       any
     >;
   };
-  userQueries: {
+  logAccess: {
+    logAccess: FunctionReference<
+      "mutation",
+      "public",
+      {
+        accessStatus: string;
+        roomName: string;
+        timestamp: string;
+        userId: string;
+      },
+      any
+    >;
+  };
+  queryData: {
+    getUserById: FunctionReference<"query", "public", { id: Id<"users"> }, any>;
     getUserByEmail: FunctionReference<
       "query",
       "public",
       { email: string },
+      any
+    >;
+    getUserByUserId: FunctionReference<
+      "query",
+      "public",
+      { userId: string },
       any
     >;
   };
@@ -43,22 +54,15 @@ export type PublicApiType = {
     updateUserPassword: FunctionReference<
       "mutation",
       "public",
-      { hashedPassword: string; userId: Id<"Users"> },
+      { hashedPassword: string; userId: Id<"users"> },
       any
     >;
   };
-  logAccess: {
-    logAccess: FunctionReference<
-      "mutation",
+  userQueries: {
+    getUserByEmail: FunctionReference<
+      "query",
       "public",
-      {
-        email: string;
-        location: string;
-        name: string;
-        status: string;
-        timestamp: string;
-        userId: Id<"Users">;
-      },
+      { email: string },
       any
     >;
   };

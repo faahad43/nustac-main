@@ -19,7 +19,7 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
   const logoutTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
-  const LOGOUT_TIMEOUT = 10 * 1000; // 10 seconds after login
+  const LOGOUT_TIMEOUT = 5 * 60 * 1000; // 10 seconds after login
 
   const logout = async () => {
     await AsyncStorage.removeItem("userEmail");

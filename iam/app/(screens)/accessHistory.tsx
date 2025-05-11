@@ -1,28 +1,58 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView,ImageBackground,Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView,ImageBackground,Image, ActivityIndicator } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AccessHistory = () => {
-  // Dummy data for the table
-  const data = [
-    { date: '2025-05-03', time: '10:00 AM', access: 'Granted', facility: 'Gym' },
-    { date: '2025-05-03', time: '11:30 AM', access: 'Denied', facility: 'Library' },
-    { date: '2025-05-02', time: '04:00 PM', access: 'Granted', facility: 'Cafeteria' },
-    { date: '2025-05-03', time: '10:00 AM', access: 'Granted', facility: 'Gym' },
-    { date: '2025-05-03', time: '11:30 AM', access: 'Denied', facility: 'Library' },
-    { date: '2025-05-02', time: '04:00 PM', access: 'Granted', facility: 'Cafeteria' },
-    { date: '2025-05-03', time: '10:00 AM', access: 'Granted', facility: 'Gym' },
-    { date: '2025-05-03', time: '11:30 AM', access: 'Denied', facility: 'Library' },
-    { date: '2025-05-02', time: '04:00 PM', access: 'Granted', facility: 'Cafeteria' },
-    { date: '2025-05-03', time: '10:00 AM', access: 'Granted', facility: 'Gym' },
-    { date: '2025-05-03', time: '11:30 AM', access: 'Denied', facility: 'Library' },
-    { date: '2025-05-02', time: '04:00 PM', access: 'Granted', facility: 'Cafeteria' },
-    { date: '2025-05-03', time: '10:00 AM', access: 'Granted', facility: 'Gym' },
-    { date: '2025-05-03', time: '11:30 AM', access: 'Denied', facility: 'Library' },
-    { date: '2025-05-02', time: '04:00 PM', access: 'Granted', facility: 'Cafeteria' },
-    { date: '2025-05-03', time: '10:00 AM', access: 'Granted', facility: 'Gym' },
-    { date: '2025-05-03', time: '11:30 AM', access: 'Denied', facility: 'Library' },
-    { date: '2025-05-02', time: '04:00 PM', access: 'Granted', facility: 'Cafeteria' },
-  ];
+
+    
+    const [data, setData] = useState([]); // State to store access logs
+    const [loading, setLoading] = useState(true); // State to manage loading state
+    
+
+    useEffect(() => {
+      // Fetch access logs when the page is opened
+      const fetchAccessLogs = async () => {
+        try {
+          const email = await AsyncStorage.getItem('userEmail');
+          console.log('Fetched email:', email);
+          const response = await fetch('https://fabulous-iguana-513.convex.cloud/api/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              path: 'queryData:getUserByEmail', // Convex query to fetch access logs
+              args: { email }, // Replace 'currentUserId' with the actual user ID
+            }),
+          });
+
+          const result = await response.json();
+          const userId = result.value.cmsId;
+
+          const logsResponse = await fetch('https://fabulous-iguana-513.convex.cloud/api/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              path: 'queryData:getUserByUserId', // Convex query to fetch access logs
+              args: { userId }, 
+            }),
+          });
+          const logResult =   await logsResponse.json();
+          console.log('Access logs:', logResult);
+          console.log("value",logResult.value)
+          if (logResult.status === 'success') {
+            setData(logResult.value); // Set the fetched data to state
+           
+          } else {
+            console.error('Failed to fetch access logs:', logResult.errorMessage);
+          }
+        } catch (error) {
+          console.error('Error fetching access logs:', error);
+        } finally {
+          setLoading(false); // Stop the loading spinner
+        }
+      };
+
+    fetchAccessLogs();
+  }, []);
 
   return (
     <ImageBackground
@@ -43,37 +73,45 @@ const AccessHistory = () => {
       {/* Access History heading */}
       <Text style={styles.heading}>Access History</Text>
       
-      {/* Scrollable table */}
-      <ScrollView style={styles.tableContainer}>
-        <View style={styles.table}>
-          <View style={styles.tableRow}>
-            <Text style={styles.tableHeader}>Date</Text>
-            <Text style={styles.tableHeader}>Time</Text>
-            <Text style={styles.tableHeader}>Access</Text>
-            <Text style={styles.tableHeader}>Facility</Text>
+      {/* Show loading spinner while fetching data */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#80D8FF" />
+        ) : (
+          <ScrollView style={styles.tableContainer}>
+            <View style={styles.table}>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableHeader}>Date</Text>
+                <Text style={styles.tableHeader}>Time</Text>
+                <Text style={styles.tableHeader}>Access</Text>
+                <Text style={styles.tableHeader}>Facility</Text>
+              </View>
+
+              {data.length > 0 ? (
+                data.map((item, index) => (
+                  <View key={index} style={styles.tableRow}>
+                    <Text style={styles.tableData}>{new Date(item.timestamp).toLocaleDateString()}</Text>
+                    <Text style={styles.tableData}>{new Date(item.timestamp).toLocaleTimeString()}</Text>
+                    <Text
+                      style={[
+                        styles.tableData,
+                        { color: item.accessStatus === 'allowed' ? 'green' : 'red' },
+                      ]}
+                    >
+                      {item.accessStatus === 'allowed' ? 'Granted' : 'Denied'}
+                    </Text>
+                    <Text style={styles.tableData}>{item.roomName}</Text>
+                  </View>
+                ))
+                    ) : (
+                      <Text style={styles.noDataText}>No access logs available.</Text>
+                    )}
+                  </View>
+                </ScrollView>
+              )}
           </View>
-          
-          {data.map((item, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableData}>{item.date}</Text>
-              <Text style={styles.tableData}>{item.time}</Text>
-              <Text
-              style={[
-                styles.tableData,
-                { color: item.access === 'Granted' ? 'green' : 'red' }
-              ]}
-            >
-              {item.access}
-            </Text>
-              <Text style={styles.tableData}>{item.facility}</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
-    </ImageBackground>
-  );
-};
+          </ImageBackground>
+        );
+      };
 
 const styles = StyleSheet.create({
   background: {
@@ -139,6 +177,14 @@ const styles = StyleSheet.create({
     width: '25%',
     textAlign: 'center',
   },
+  noDataText: {
+    textAlign: 'center',
+    marginVertical: 20,
+    color: '#888',
+  },
 });
 
 export default AccessHistory;
+
+
+// you have to add below things above

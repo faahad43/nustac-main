@@ -15,7 +15,10 @@ SplashScreen.preventAutoHideAsync();
 
 const convexUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_CONVEX_URL;
 
-const convex = new ConvexReactClient(convexUrl, {
+console.log("Convex URL:", convexUrl);
+
+const convex = new ConvexReactClient("https://fabulous-iguana-513.convex.cloud", {
+  verbose: true,
   unsavedChangesWarning: false,
 });
 
